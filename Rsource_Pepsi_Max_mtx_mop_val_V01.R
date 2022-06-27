@@ -31,26 +31,28 @@ dir( paste0( dt$wd, "/", "/Modellerstellung", "/", dt$para$model.raw.date, "_", 
 dt$para$substance <- c("TA",	"Coffein",	"Aspartam",	"Acesulfam", "Flavor1")
 
 # Unit ####
-dt$para$unit <- c( bquote("mg L"-1),  bquote("mg L"-1),  bquote("mg L"-1),  bquote("mg L"-1),  bquote("mg L"-1) )
-dt$para$ylab <- c(bquote("TA in mg / 100mL"^-1), bquote("Coffein in mg / L"^-1), bquote("Aspartam in mg / L"^-1), bquote("Acesulfam in mg / L"^-1), bquote("Benzoat in mg / L"^-1))
+dt$para$unit <- c( bquote("mg L"-1),  bquote("mg L"-1),  bquote("mg L"-1),  bquote("mg L"-1),  bquote("%") )
+dt$para$ylab <- c(bquote("TA in mg / 100mL"^-1), bquote("Coffein in mg / L"^-1), bquote("Aspartam in mg / L"^-1), bquote("Acesulfam in mg / L"^-1), bquote("Flavor1 in %"))
 
 # Rezept und SOLL-Werte ####
 setwd( paste0( dt$wd, "/", "/Rezept") )
 dt$rez <- read.xlsx(grep(".xlsx", dir( paste0( dt$wd, "/", "/Rezept")), value = T)[ length(grep(".xlsx", dir( paste0( dt$wd, "/", "/Rezept")), value = F))])
 dt$rez[ grep("Messparameter", dt$rez[ , 1]): nrow(dt$rez) , ]
-dt$para$SOLL <- c(13.68, 119.86, 575.1, 39.9)
-# dt$para$eingriff <- data.frame( TA = c(24.67, 26.73)
-#                                 , Coffein = c(116.28, 123.48)
-#                                 , Aspartam = c(305.36, 419.36 )
-#                                 , Acesulfam = c(87.23, 92.63)
-#                                 )
-# 
-# dt$para$sperr <- data.frame( TA = c(dt$para$SOLL[ 1 ] - .4, dt$para$SOLL[ 1 ] + .4)
-#                              , Coffein = c(dt$para$SOLL[ 2 ] - 10, dt$para$SOLL[ 2 ] + 10)
-#                              , Aspartam = c(NA, NA )
-#                              , Acesulfam = c(NA, NA)
-#                              )
-#
+dt$para$SOLL <- c(13.68, 119.86, 575.1, 39.9, 100)
+dt$para$eingriff <- data.frame( TA = c(13.27, 14.09)
+                                , Coffein = c(116.26, 123.68)
+                                , Aspartam = c(431.33, 592.3 )
+                                , Acesulfam = c(37.9, 41.12)
+                                , Flavor1 = c(97, 103)
+                                )
+
+dt$para$sperr <- data.frame( TA = c(NA, NA)
+                             , Coffein = c(NA, NA)
+                             , Aspartam = c(NA, NA )
+                             , Acesulfam = c(NA, NA)
+                             , Flavor1 = c(95, 105)
+                             )
+
 # # Modelloptimierung
 dir( paste0( dt$wd, "/", "/Modelloptimierung") )
 dt$para$mop.date <- "220331"
@@ -65,7 +67,7 @@ dt$model.raw <- read.csv2( print(grep( "match.csv", dir(), value = T)), dec = ",
 head10(dt$model.raw)
 
 for(i in 1:length(dt$para$substance)){
-  if(dt$para$substance[i] == "TA" | dt$para$substance[i] == "TTA" | dt$para$substance[i] == "Acid") next
+ if(dt$para$substance[i] == "TA" | dt$para$substance[i] == "TTA" | dt$para$substance[i] == "Acid") next
   dt$model.raw[ , colnames(dt$model.raw) %in% dt$para$substance[i]] <- dt$model.raw[ , colnames(dt$model.raw) %in% dt$para$substance[i]] * dt$para$SOLL[i] / 100
 }
 
@@ -73,20 +75,28 @@ dt$SL <- dt$model.raw[which(dt$model.raw$Probe_Anteil == "SL") , ]
 dt$model.raw <- dt$model.raw[which(dt$model.raw$Probe_Anteil != "SL") , ]
 
 # Modellvalidierung ####
-# dir( paste0( dt$wd, "/", "/Modellvalidierung") )
-# dt$para$val.date <- "220524"
-#
-# # Linearity
-# setwd(dt$wd)
-# setwd("./Modellvalidierung")
-# setwd("./Linearitaet")
-# dir()
-# dt$lin$raw <- read.csv2( "220602_Schwip_Schwap_Light_Linearitaet_TA_Coffein_Aspartam_Acesulfam.csv" , sep = "\t")
-# dt$lin$raw <- dt$lin$raw[ order(dt$lin$raw$Dilution) , ]
-# dt$lin$trs <- transfer_csv(dt$lin$raw)
-#
-# dt$para$Charge.val <- c("")
-# dt$para$Charge.val.Sirup <- ""
+dir( paste0( dt$wd, "/", "/Modellvalidierung") )
+dt$para$val.date <- "220331"
+
+# Linearity
+setwd(dt$wd)
+setwd("./Modellvalidierung")
+setwd("./Linearitaet")
+dir()
+dt$lin$raw <- read.csv2( "220602_Pepsi_Max_Linearitaet.csv" , sep = "\t")
+dt$lin$raw <- dt$lin$raw[ order(dt$lin$raw$Dilution) , ]
+dt$lin$trs <- transfer_csv(dt$lin$raw)
+
+
+colp <- c("red", "blue", "darkgreen")[ factor(dt$lin$trs$data$Dilution) ]
+matplot(dt$para$wl[[1]]
+        , t( dt$lin$trs$spc)
+        , type = "l", lty = 1, xlab = lambda, ylab = "AU", main = "Linearitaet"
+        , col = colp, xlim = c(220, 260), ylim = c(.25, .4))
+
+
+dt$para$Charge.val <- c("")
+dt$para$Charge.val.Sirup <- ""
 
 # rename R files (run only once)
 setwd(dt$wd.git)
